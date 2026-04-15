@@ -5,11 +5,13 @@ async function listVendors(req, res) {
     const [rows] = await db.query(
       `SELECT
          vendor_id,
+         vendor_id AS id,
          user_id,
          store_name,
          store_name AS company_name,
          vendor_type,
          approval_status,
+         COALESCE(commission_rate, 0) AS commission_rate,
          approval_status AS status
        FROM Vendor
        ORDER BY vendor_id ASC`

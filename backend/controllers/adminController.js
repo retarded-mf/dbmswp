@@ -36,13 +36,15 @@ async function updateCommissionRate(req, res) {
 
   try {
     const [result] = await db.query(
-      "UPDATE CommissionRecord SET commission_rate = ?",
+      "UPDATE Vendor SET commission_rate = ? WHERE vendor_id > 0",
       [rate]
     );
 
     res.json({
       success: true,
-      updated_rows: result.affectedRows
+      updated_rows: result.affectedRows,
+      message:
+        "Default commission % stored on vendors; new orders still use the rate applied at checkout in the demo."
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

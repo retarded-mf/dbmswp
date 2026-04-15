@@ -115,6 +115,7 @@ async function getAllOrders(req, res) {
          v.store_name AS vendor_name,
          oi.quantity,
          oi.price,
+         oi.price AS price_at_time,
          oi.status AS item_status
        FROM Orders o
        JOIN OrderItem oi ON o.order_id = oi.order_id

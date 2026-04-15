@@ -186,7 +186,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
     <div class="role-switcher">
         <span>View as:</span>
         <button class="role-btn active" data-role="customer">Customer</button>
-        <button class="role-btn" data-role="vendor">Vendor (TechZone)</button>
+        <button class="role-btn" data-role="vendor">Vendor (Maker Hub)</button>
         <button class="role-btn" data-role="admin">Admin</button>
     </div>
 
@@ -216,7 +216,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     </div>
                     <div class="cart-total">
                         <span>Subtotal:</span>
-                        <span id="cart-total-amt">$0.00</span>
+                        <span id="cart-total-amt">₹0.00</span>
                     </div>
                     <button class="btn" style="width:100%" onclick="placeOrder()">Place Order</button>
                 </div>
@@ -234,7 +234,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
 
     <!-- MAIN VENDOR VIEW -->
     <div id="view-vendor" class="view container">
-        <h1>TechZone Vendor Dashboard</h1>
+        <h1>Maker Hub Vendor Dashboard</h1>
         
         <div id="vendor-pending" style="display:none;" class="card">
             <h3 style="color: var(--danger)">Account Notice</h3>
@@ -245,7 +245,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             <div class="dash-grid">
                 <div class="dash-card">
                     <h3>Gross Revenue</h3>
-                    <div class="value" id="v-rev">$0.00</div>
+                    <div class="value" id="v-rev">₹0.00</div>
                 </div>
                 <div class="dash-card">
                     <h3>Units Sold</h3>
@@ -253,11 +253,11 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 </div>
                 <div class="dash-card">
                     <h3>Platform Commission</h3>
-                    <div class="value" id="v-comm">$0.00</div>
+                    <div class="value" id="v-comm">₹0.00</div>
                 </div>
                 <div class="dash-card" style="background:var(--primary); color:white;">
                     <h3 style="color:rgba(255,255,255,0.8)">Net Payout</h3>
-                    <div class="value" id="v-net">$0.00</div>
+                    <div class="value" id="v-net">₹0.00</div>
                 </div>
             </div>
 
@@ -325,23 +325,19 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
         <div class="dash-grid">
             <div class="dash-card">
                 <h3>Total Platform GMV</h3>
-                <div class="value" id="a-gross">$0.00</div>
+                <div class="value" id="a-gross">₹0.00</div>
             </div>
             <div class="dash-card" style="background:var(--accent); color:white;">
                 <h3 style="color:rgba(255,255,255,0.8)">Net Platform Profit (Commission)</h3>
-                <div class="value" id="a-comm">$0.00</div>
+                <div class="value" id="a-comm">₹0.00</div>
             </div>
             <div class="dash-card">
                 <h3>Vendor Payout Ledger</h3>
-                <div class="value" id="a-payout">$0.00</div>
+                <div class="value" id="a-payout">₹0.00</div>
             </div>
         </div>
 
-        <div class="card mb-2" style="display:flex; gap:15px; align-items:center;">
-            <h3>Global Base Commission Override</h3>
-            <input type="number" id="admin-comm-rate" placeholder="Commission % (e.g. 15)" style="padding:10px; border-radius:6px; border:1px solid #ccc;">
-            <button class="btn" onclick="setCommission()">Update System Comm. Map</button>
-        </div>
+        <p style="color:var(--text-light); margin-bottom:20px;">Commission and payouts appear here after a customer places an order (demo).</p>
 
         <h3 style="margin-top:40px;">Partnership / Vendor Applications</h3>
         <div class="card mb-2" style="overflow-x:auto;">
@@ -459,14 +455,20 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
     <!-- APPLICATION LOGIC IN VANILLA JS -->
     <script>
         const API_URL = 'http://localhost:3000';
+
+        function formatRupees(n) {
+            const x = Number(n);
+            if (Number.isNaN(x)) return '₹0.00';
+            return '₹' + x.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
         
         // MOCK SESSION STATE FOR DEMO
         let products = [];
         let categories = [];
         let cart = [];
         let orderHistory = [];
-        const vendorId = 1; // Assuming Vendor TechZone = ID 1
-        const userId = 2;   // Assuming Customer One = ID 2
+        const vendorId = 1; // Maker Hub
+        const userId = 1;   // Aarav Shah (customer) — matches seed User
 
         document.addEventListener('DOMContentLoaded', () => {
             initApp();
@@ -583,7 +585,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     <div class="product-emoji">${p.emoji || '📦'}</div>
                     <h3 class="product-title">${p.name}</h3>
                     <div class="product-vendor">sold by ${p.vendor_name}</div>
-                    <div class="product-price">$${p.price}</div>
+                    <div class="product-price">${formatRupees(p.price)}</div>
                     <button class="btn" style="width:100%" onclick="addToCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>Add to Cart</button>
                 `;
                 grid.appendChild(div);
@@ -627,7 +629,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             
             if (cart.length === 0) {
                 crt.innerHTML = '<div style="color: #999; margin-top:10px;">Cart is empty.</div>';
-                document.getElementById('cart-total-amt').innerText = `$0.00`;
+                document.getElementById('cart-total-amt').innerText = formatRupees(0);
                 return;
             }
 
@@ -638,13 +640,13 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     <div class="cart-item">
                         <div>
                             <div><strong>${c.name}</strong></div>
-                            <div style="font-size:0.8rem; color:#777;">$${c.price} x ${c.quantity}</div>
+                            <div style="font-size:0.8rem; color:#777;">${formatRupees(c.price)} × ${c.quantity}</div>
                         </div>
                         <button onclick="cart.splice(${idx}, 1); renderCart()" style="border:none;background:none;color:var(--danger);font-weight:bold;cursor:pointer;">X</button>
                     </div>
                 `;
             });
-            document.getElementById('cart-total-amt').innerText = `$${total.toFixed(2)}`;
+            document.getElementById('cart-total-amt').innerText = formatRupees(total);
         }
 
         async function placeOrder() {
@@ -675,13 +677,13 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 historyList.innerHTML = '';
                 
                 // Group by basic order
-                const myOrders = res.filter(o => true); // In a fully authed app, check uid
-                
+                const myOrders = res.filter(o => Number(o.user_id) === userId);
+
                 if (myOrders.length === 0) {
                     historyList.innerHTML = '<p>No recent orders found.</p>';
+                    return;
                 }
 
-                // Get 3 most recent unique line items to demonstrate lifecycle
                 const shows = myOrders.slice(0, 4); 
                 
                 shows.forEach(o => {
@@ -689,7 +691,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     historyList.innerHTML += `
                         <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
                             <div style="font-weight:bold; color:var(--accent)">${o.product_name}</div>
-                            <div style="font-size:0.8rem; margin-bottom:5px;">Qty: ${o.quantity} | Total: $${(o.quantity*o.price_at_time||0)}</div>
+                            <div style="font-size:0.8rem; margin-bottom:5px;">Qty: ${o.quantity} | Total: ${formatRupees((o.quantity * (o.price_at_time ?? o.price)) || 0)}</div>
                             <div class="status-bar">
                                 <span class="${s=='Placed'||s=='Confirmed'||s=='Shipped'||s=='Delivered'?'active':''}">Placed</span> →
                                 <span class="${s=='Confirmed'||s=='Shipped'||s=='Delivered'?'active':''}">Confirmed</span> →
@@ -724,10 +726,10 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             document.getElementById('vendor-pending').style.display = 'none';
 
             // Top-line financials
-            document.getElementById('v-rev').innerText = `$${Number(res.revenue).toFixed(2)}`;
+            document.getElementById('v-rev').innerText = formatRupees(res.revenue);
             document.getElementById('v-orders').innerText = res.orders;
-            document.getElementById('v-comm').innerText = `$${Number(res.commission).toFixed(2)}`;
-            document.getElementById('v-net').innerText = `$${Number(res.netPayout).toFixed(2)}`;
+            document.getElementById('v-comm').innerText = formatRupees(res.commission);
+            document.getElementById('v-net').innerText = formatRupees(res.netPayout);
 
             // Populate Vendor Catalog
             const tbody = document.getElementById('vendor-products-tbody');
@@ -741,7 +743,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 tr.innerHTML = `
                     <td>${p.emoji || ''} ${p.name}</td>
                     <td>${p.category_name}</td>
-                    <td>$${p.price}</td>
+                    <td>${formatRupees(p.price)}</td>
                     <td style="font-weight:bold">${p.stock}</td>
                     <td><span style="color:${p.active?'var(--success)':'#999'}">${p.active ? 'Active' : 'Inactive'}</span></td>
                     <td>
@@ -781,8 +783,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             const ctx = document.getElementById('vendorSalesChart');
             if(vendorChartInstance) vendorChartInstance.destroy();
             
-            if(ctx && res.chartData) {
-                // Ensure array sizes
+            if(ctx && res.chartData && res.chartData.length > 0) {
                 let labels = res.chartData.map(d => new Date(d.date).toLocaleDateString());
                 let data = res.chartData.map(d => parseFloat(d.daily_total));
 
@@ -791,7 +792,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Daily Fulfillment Value ($)',
+                            label: 'Daily Fulfillment Value (₹)',
                             data: data,
                             backgroundColor: '#cba37c',
                             borderRadius: 4
@@ -860,7 +861,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                             <td>${v.commission_rate}%</td>
                             <td>
                                 ${v.status === 'Pending' ? `
-                                <button class="btn" style="padding:4px 8px; font-size:12px;" onclick="approveVendor(${v.id}, 'Approved')">Approve ✔️</button> 
+                                <button class="btn" style="padding:4px 8px; font-size:12px;" onclick="approveVendor(${v.vendor_id}, 'Approved')">Approve ✔️</button> 
                                 ` : '<span style="color:#aaa; font-style:italic">Active Account</span>'}
                             </td>
                         </tr>
@@ -870,11 +871,17 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
 
             // Table 2 & KPI Data: Live Transaction DB
             const tRes = await req('/admin/transactions');
-            if(tRes) {
+            if(tRes && Array.isArray(tRes)) {
                 const tbody = document.getElementById('admin-trans-tbody');
                 tbody.innerHTML = '';
                 
                 let totalPlat = 0, totalPO = 0;
+
+                if (tRes.length === 0) {
+                    document.getElementById('a-gross').innerText = formatRupees(0);
+                    document.getElementById('a-comm').innerText = formatRupees(0);
+                    document.getElementById('a-payout').innerText = formatRupees(0);
+                }
                 
                 tRes.forEach(t => {
                     totalPlat += Number(t.commission);
@@ -882,18 +889,18 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                     
                     tbody.innerHTML += `
                         <tr>
-                            <td>[TXN-${t.id}]</td>
+                            <td>[TXN-${t.commission_id}]</td>
                             <td>${t.vendor}</td>
-                            <td style="font-weight:bold;">$${Number(t.amount).toFixed(2)}</td>
-                            <td style="color:var(--success)">$${Number(t.commission).toFixed(2)}</td>
-                            <td>$${Number(t.payout).toFixed(2)}</td>
+                            <td style="font-weight:bold;">${formatRupees(t.amount)}</td>
+                            <td style="color:var(--success)">${formatRupees(t.commission)}</td>
+                            <td>${formatRupees(t.payout)}</td>
                         </tr>
                     `;
                 });
                 
-                document.getElementById('a-gross').innerText = `$${(totalPlat + totalPO).toFixed(2)}`;
-                document.getElementById('a-comm').innerText = `$${totalPlat.toFixed(2)}`;
-                document.getElementById('a-payout').innerText = `$${totalPO.toFixed(2)}`;
+                document.getElementById('a-gross').innerText = formatRupees(totalPlat + totalPO);
+                document.getElementById('a-comm').innerText = formatRupees(totalPlat);
+                document.getElementById('a-payout').innerText = formatRupees(totalPO);
             }
         }
 
@@ -903,13 +910,6 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             loadAdminDashboard();
         }
 
-        async function setCommission() {
-            const rate = document.getElementById('admin-comm-rate').value;
-            if(!rate) return;
-            await req('/admin/settings/commission', { method:'PUT', body: JSON.stringify({rate}) });
-            alert(`Platform logic applied -> Default fee set to ${rate}%`);
-            loadAdminDashboard();
-        }
     </script>
 </body>
 </html>

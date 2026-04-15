@@ -7,7 +7,7 @@ Simple backend for a DBMS + Web Programming college project using:
 - MySQL
 - mysql2
 
-It serves the frontend from the root [public](C:/Users/Aditya%20Rane/Downloads/Coding%20Projects/DBMS%20proj/public) folder and exposes CRUD APIs for products, vendors, orders, and admin transactions.
+It serves the frontend from the repo `public/` folder and exposes CRUD APIs for products, vendors, orders, and admin transactions. Product prices in the seed data are in **INR (₹)**.
 
 ## Folder structure
 
@@ -27,11 +27,14 @@ sql/
 ## Database setup
 
 1. Open MySQL Workbench or phpMyAdmin.
-2. Run [sql/diy_marketplace.sql](C:/Users/Aditya%20Rane/Downloads/Coding%20Projects/DBMS%20proj/sql/diy_marketplace.sql)
+2. Run `sql/diy_marketplace.sql`
 3. This creates:
    - database `diy_marketplace`
    - all required tables
-   - sample users, vendors, categories, products, kits, orders, commissions, and payouts
+   - sample users, vendors, categories, products, and kits
+   - **no** orders, commissions, or payouts until you place orders through the app (or insert manually)
+
+If you already have an older database and only want to clear order history, run `sql/migrate_existing_to_inr.sql` (adjust the `USE` database name if needed).
 
 ## Backend configuration
 

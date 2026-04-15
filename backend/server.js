@@ -29,7 +29,11 @@ app.use("/admin", adminRoutes);
 // Extra route for the demo frontend.
 app.get("/categories", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM Category ORDER BY category_name");
+    const [rows] = await db.query(
+      `SELECT category_id AS id, category_name AS name
+       FROM Category
+       ORDER BY category_name`
+    );
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
