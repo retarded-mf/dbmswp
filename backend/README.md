@@ -42,6 +42,10 @@ The backend reads database config from environment variables if provided:
 - `DB_PASSWORD`
 - `DB_NAME`
 
+Easiest way:
+1. Copy `backend/.env.example` to `backend/.env`
+2. Put your MySQL password in `DB_PASSWORD`
+
 Default values:
 
 - host: `localhost`
