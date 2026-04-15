@@ -1,51 +1,92 @@
-# Student DIY Components Marketplace System (Backend)
+# Student DIY Components Marketplace System
 
-This is a simple college-friendly backend using:
+Simple backend for a DBMS + Web Programming college project using:
+
 - Node.js
 - Express.js
 - MySQL
-- `mysql2` (with connection pooling)
+- mysql2
 
-It also serves the frontend from the main project's `public/` folder.
+It serves the frontend from the root [public](C:/Users/Aditya%20Rane/Downloads/Coding%20Projects/DBMS%20proj/public) folder and exposes CRUD APIs for products, vendors, orders, and admin transactions.
 
-## Setup (MySQL)
+## Folder structure
 
-1. Create a database called `student_marketplace`
-2. Create the tables (starter schema is inside `backend/db.js` as a comment)
+```text
+backend/
+  server.js
+  db.js
+  package.json
+  routes/
+  controllers/
+public/
+  index.html
+sql/
+  diy_marketplace.sql
+```
 
-Update DB settings using environment variables (optional):
+## Database setup
+
+1. Open MySQL Workbench or phpMyAdmin.
+2. Run [sql/diy_marketplace.sql](C:/Users/Aditya%20Rane/Downloads/Coding%20Projects/DBMS%20proj/sql/diy_marketplace.sql)
+3. This creates:
+   - database `diy_marketplace`
+   - all required tables
+   - sample users, vendors, categories, products, kits, orders, commissions, and payouts
+
+## Backend configuration
+
+The backend reads database config from environment variables if provided:
+
 - `DB_HOST`
 - `DB_USER`
 - `DB_PASSWORD`
 - `DB_NAME`
 
-## Run instructions
+Default values:
 
-From the project root:
+- host: `localhost`
+- user: `root`
+- password: empty string
+- database: `diy_marketplace`
+
+## Install and run
+
+From the backend folder:
 
 ```bash
-cd backend
 npm install
 node server.js
 ```
 
-Open:
-- http://localhost:3000
+Server URL:
 
-## API routes
+- `http://localhost:3000`
+
+## Main API routes
 
 - `GET /products`
 - `POST /products`
 - `PUT /products/:id`
 - `DELETE /products/:id`
-
 - `GET /vendors`
 - `PUT /vendors/:id/approve`
-
 - `POST /orders`
 - `GET /orders`
 - `PUT /orders/:id/status`
-
 - `GET /admin/transactions`
 - `PUT /admin/commission`
+
+## Extra demo routes
+
+- `GET /categories`
+- `GET /vendor/:id/dashboard`
+- `PUT /admin/settings/commission`
+
+## Quick test
+
+Open these in browser or Postman after starting the server:
+
+- `http://localhost:3000/products`
+- `http://localhost:3000/vendors`
+- `http://localhost:3000/orders`
 

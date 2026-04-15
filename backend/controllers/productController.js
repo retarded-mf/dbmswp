@@ -1,110 +1,144 @@
 const db = require("../db");
 
-/*
-  Example queries:
-  - Get all products with vendor + category:
-    SELECT p.*, v.company_name AS vendor_name, c.name AS category_name
-    FROM Product p
-    JOIN Vendor v ON p.vendor_id = v.id
-    JOIN Category c ON p.category_id = c.id;
-*/
-
 async function getAllProducts(req, res) {
   try {
     const [rows] = await db.query(
-      `
-      SELECT 
-        p.*,
-        v.company_name AS vendor_name,
-        c.name AS category_name
-      FROM Product p
-      JOIN Vendor v ON p.vendor_id = v.id
-      JOIN Category c ON p.category_id = c.id
-      ORDER BY p.created_at DESC
-      `
+      `SELECT
+         p.product_id,
+         p.name,
+         p.price,
+         p.stock,
+         p.status,
+         p.status AS active,
+         p.vendor_id,
+         p.category_id,
+         p.project_type_id,
+         p.difficulty_id,
+         v.store_name AS vendor_name,
+         c.category_name AS category_name,
+         pt.type_name,
+         d.level
+       FROM Product p
+       JOIN Vendor v ON p.vendor_id = v.vendor_id
+       JOIN Category c ON p.category_id = c.category_id
+       LEFT JOIN ProjectType pt ON p.project_type_id = pt.project_type_id
+       LEFT JOIN DifficultyLevel d ON p.difficulty_id = d.difficulty_id
+       ORDER BY p.product_id DESC`
     );
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    const products = rows.map((row) => ({
+      id: row.product_id,
+      ...row
+    }));
+
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
 async function addProduct(req, res) {
   const {
-    vendor_id,
-    category_id,
-    project_type_id,
-    difficulty_level_id,
     name,
     price,
     stock,
-    emoji
+    vendor_id,
+    category_id,
+    project_type_id,
+    difficulty_id,
+    status
   } = req.body;
 
-  if (!vendor_id || !category_id || !name || price === undefined || stock === undefined) {
+  if (!name || price === undefined || stock === undefined || !vendor_id || !category_id) {
     return res.status(400).json({
-      error: "vendor_id, category_id, name, price, stock are required"
+      error: "name, price, stock, vendor_id and category_id are required"
     });
   }
 
   try {
     const [result] = await db.query(
-      `
-      INSERT INTO Product
-        (vendor_id, category_id, project_type_id, difficulty_level_id, name, price, stock, emoji)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
+      `INSERT INTO Product
+       (name, price, stock, status, vendor_id, category_id, project_type_id, difficulty_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        vendor_id,
-        category_id,
-        project_type_id || null,
-        difficulty_level_id || null,
         name,
         price,
         stock,
-        emoji || null
+        status === undefined ? true : status,
+        vendor_id,
+        category_id,
+        project_type_id || null,
+        difficulty_id || null
       ]
     );
 
-    res.json({ success: true, id: result.insertId });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(201).json({
+      success: true,
+      product_id: result.insertId,
+      id: result.insertId
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
 async function updateProduct(req, res) {
-  const { id } = req.params;
-  const { active, stock, price, name } = req.body;
+  const productId = req.params.id;
+  const {
+    name,
+    price,
+    stock,
+    status,
+    active,
+    category_id,
+    project_type_id,
+    difficulty_id
+  } = req.body;
+
+  const fields = [];
+  const values = [];
+
+  if (name !== undefined) {
+    fields.push("name = ?");
+    values.push(name);
+  }
+  if (price !== undefined) {
+    fields.push("price = ?");
+    values.push(price);
+  }
+  if (stock !== undefined) {
+    fields.push("stock = ?");
+    values.push(stock);
+  }
+  if (status !== undefined) {
+    fields.push("status = ?");
+    values.push(status);
+  } else if (active !== undefined) {
+    fields.push("status = ?");
+    values.push(active);
+  }
+  if (category_id !== undefined) {
+    fields.push("category_id = ?");
+    values.push(category_id);
+  }
+  if (project_type_id !== undefined) {
+    fields.push("project_type_id = ?");
+    values.push(project_type_id);
+  }
+  if (difficulty_id !== undefined) {
+    fields.push("difficulty_id = ?");
+    values.push(difficulty_id);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: "No fields provided for update" });
+  }
+
+  values.push(productId);
 
   try {
-    const fields = [];
-    const values = [];
-
-    if (active !== undefined) {
-      fields.push("active = ?");
-      values.push(active);
-    }
-    if (stock !== undefined) {
-      fields.push("stock = ?");
-      values.push(stock);
-    }
-    if (price !== undefined) {
-      fields.push("price = ?");
-      values.push(price);
-    }
-    if (name !== undefined) {
-      fields.push("name = ?");
-      values.push(name);
-    }
-
-    if (fields.length === 0) {
-      return res.status(400).json({ error: "Nothing to update" });
-    }
-
-    values.push(id);
-
     const [result] = await db.query(
-      `UPDATE Product SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE Product SET ${fields.join(", ")} WHERE product_id = ?`,
       values
     );
 
@@ -113,22 +147,24 @@ async function updateProduct(req, res) {
     }
 
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
 async function deleteProduct(req, res) {
-  const { id } = req.params;
+  const productId = req.params.id;
 
   try {
-    const [result] = await db.query("DELETE FROM Product WHERE id = ?", [id]);
+    const [result] = await db.query("DELETE FROM Product WHERE product_id = ?", [productId]);
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Product not found" });
     }
+
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -138,4 +174,3 @@ module.exports = {
   updateProduct,
   deleteProduct
 };
-

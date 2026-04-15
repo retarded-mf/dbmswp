@@ -1,242 +1,546 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const db = require('./db');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const db = require("./db");
 
 const app = express();
+const publicPath = path.join(__dirname, "public");
+
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(publicPath));
 
-// ==== PRODUCTS ====
-app.get('/products', async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT p.*, v.company_name as vendor_name, c.name as category_name
-            FROM Product p
-            JOIN Vendor v ON p.vendor_id = v.id
-            JOIN Category c ON p.category_id = c.id
-        `);
-        res.json(rows);
-    } catch (e) {
-        res.status(500).json({error: e.message});
+app.get("/", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+app.get("/products", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         p.product_id,
+         p.name,
+         p.price,
+         p.stock,
+         p.status,
+         p.status AS active,
+         p.vendor_id,
+         p.category_id,
+         p.project_type_id,
+         p.difficulty_id,
+         v.store_name AS vendor_name,
+         c.category_name AS category_name,
+         pt.type_name,
+         d.level
+       FROM Product p
+       JOIN Vendor v ON p.vendor_id = v.vendor_id
+       JOIN Category c ON p.category_id = c.category_id
+       LEFT JOIN ProjectType pt ON p.project_type_id = pt.project_type_id
+       LEFT JOIN DifficultyLevel d ON p.difficulty_id = d.difficulty_id
+       ORDER BY p.product_id DESC`
+    );
+
+    const products = rows.map((row) => ({
+      id: row.product_id,
+      ...row
+    }));
+
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/products", async (req, res) => {
+  const {
+    name,
+    price,
+    stock,
+    vendor_id,
+    category_id,
+    project_type_id,
+    difficulty_id,
+    status
+  } = req.body;
+
+  if (!name || price === undefined || stock === undefined || !vendor_id || !category_id) {
+    return res.status(400).json({
+      error: "name, price, stock, vendor_id and category_id are required"
+    });
+  }
+
+  try {
+    const [result] = await db.query(
+      `INSERT INTO Product
+       (name, price, stock, status, vendor_id, category_id, project_type_id, difficulty_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        price,
+        stock,
+        status === undefined ? true : status,
+        vendor_id,
+        category_id,
+        project_type_id || null,
+        difficulty_id || null
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      product_id: result.insertId,
+      id: result.insertId
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/products/:id", async (req, res) => {
+  const productId = req.params.id;
+  const {
+    name,
+    price,
+    stock,
+    status,
+    active,
+    category_id,
+    project_type_id,
+    difficulty_id
+  } = req.body;
+
+  const fields = [];
+  const values = [];
+
+  if (name !== undefined) {
+    fields.push("name = ?");
+    values.push(name);
+  }
+  if (price !== undefined) {
+    fields.push("price = ?");
+    values.push(price);
+  }
+  if (stock !== undefined) {
+    fields.push("stock = ?");
+    values.push(stock);
+  }
+  if (status !== undefined) {
+    fields.push("status = ?");
+    values.push(status);
+  } else if (active !== undefined) {
+    fields.push("status = ?");
+    values.push(active);
+  }
+  if (category_id !== undefined) {
+    fields.push("category_id = ?");
+    values.push(category_id);
+  }
+  if (project_type_id !== undefined) {
+    fields.push("project_type_id = ?");
+    values.push(project_type_id);
+  }
+  if (difficulty_id !== undefined) {
+    fields.push("difficulty_id = ?");
+    values.push(difficulty_id);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: "No fields provided for update" });
+  }
+
+  values.push(productId);
+
+  try {
+    const [result] = await db.query(
+      `UPDATE Product SET ${fields.join(", ")} WHERE product_id = ?`,
+      values
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Product not found" });
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.post('/products', async (req, res) => {
-    const { vendor_id, category_id, name, price, stock, emoji } = req.body;
-    try {
-        const [result] = await db.query(
-            "INSERT INTO Product (vendor_id, category_id, name, price, stock, emoji) VALUES (?, ?, ?, ?, ?, ?)",
-            [vendor_id, category_id, name, price, stock, emoji]
-        );
-        res.json({ success: true, id: result.insertId });
-    } catch(e) {
-        res.status(500).json({ error: e.message });
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const [result] = await db.query("DELETE FROM Product WHERE product_id = ?", [req.params.id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Product not found" });
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.put('/products/:id', async (req, res) => {
-    const { active, stock } = req.body;
-    try {
-        if(active !== undefined) {
-             await db.query("UPDATE Product SET active=? WHERE id=?", [active, req.params.id]);
-        }
-        if(stock !== undefined) {
-             await db.query("UPDATE Product SET stock=? WHERE id=?", [stock, req.params.id]);
-        }
-        res.json({success: true});
-    } catch(e) {
-        res.status(500).json({error: e.message});
+app.post("/orders", async (req, res) => {
+  const { user_id, cart_items } = req.body;
+
+  if (!user_id || !Array.isArray(cart_items) || cart_items.length === 0) {
+    return res.status(400).json({ error: "user_id and cart_items are required" });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    let totalAmount = 0;
+    const preparedItems = [];
+
+    for (const item of cart_items) {
+      const productId = Number(item.product_id);
+      const quantity = Number(item.quantity);
+
+      if (!productId || !quantity || quantity <= 0) {
+        throw new Error("Each cart item must have valid product_id and quantity");
+      }
+
+      const [productRows] = await connection.query(
+        `SELECT product_id, name, price, stock, vendor_id
+         FROM Product
+         WHERE product_id = ? AND status = TRUE
+         FOR UPDATE`,
+        [productId]
+      );
+
+      if (productRows.length === 0) {
+        throw new Error(`Product not found: ${productId}`);
+      }
+
+      const product = productRows[0];
+
+      if (product.stock < quantity) {
+        throw new Error(`Not enough stock for product: ${product.name}`);
+      }
+
+      const price = item.price !== undefined ? Number(item.price) : Number(product.price);
+      totalAmount += price * quantity;
+
+      preparedItems.push({
+        product_id: productId,
+        vendor_id: product.vendor_id,
+        quantity,
+        price
+      });
     }
-});
 
-app.delete('/products/:id', async (req, res) => {
-    try {
-        await db.query("DELETE FROM Product WHERE id=?", [req.params.id]);
-        res.json({success:true});
-    } catch(e){
-        res.status(500).json({error:e.message});
+    const [orderResult] = await connection.query(
+      `INSERT INTO Orders (user_id, status, total_amount)
+       VALUES (?, ?, ?)`,
+      [user_id, "Placed", totalAmount]
+    );
+
+    const orderId = orderResult.insertId;
+    const commissionMap = new Map();
+
+    for (const item of preparedItems) {
+      await connection.query(
+        `INSERT INTO OrderItem (order_id, product_id, quantity, price)
+         VALUES (?, ?, ?, ?)`,
+        [orderId, item.product_id, item.quantity, item.price]
+      );
+
+      await connection.query(
+        "UPDATE Product SET stock = stock - ? WHERE product_id = ?",
+        [item.quantity, item.product_id]
+      );
+
+      const commissionAmount = item.price * item.quantity * 0.12;
+      const existingAmount = commissionMap.get(item.vendor_id) || 0;
+      commissionMap.set(item.vendor_id, existingAmount + commissionAmount);
     }
-});
 
-// ==== ORDERS ====
-app.get('/orders', async (req, res) => {
-    try {
-        const [orders] = await db.query(`
-            SELECT o.id as base_order_id, o.status as order_status, o.total_amount, o.created_at, 
-                   oi.id as item_id, oi.order_id, oi.product_id, p.name as product_name, 
-                   oi.quantity, oi.status as item_status, oi.vendor_id
-            FROM \`Order\` o
-            JOIN OrderItem oi ON o.id = oi.order_id
-            JOIN Product p ON oi.product_id = p.id
-            ORDER BY o.created_at DESC
-        `);
-        res.json(orders);
-    } catch(e) {
-        res.status(500).json({error: e.message});
+    for (const [vendorId, commissionAmount] of commissionMap.entries()) {
+      await connection.query(
+        `INSERT INTO CommissionRecord (order_id, vendor_id, commission_amount, commission_rate)
+         VALUES (?, ?, ?, ?)`,
+        [orderId, vendorId, commissionAmount, 12]
+      );
     }
+
+    await connection.commit();
+    res.status(201).json({ success: true, order_id: orderId });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ error: error.message });
+  } finally {
+    connection.release();
+  }
 });
 
-app.post('/orders', async (req, res) => {
-    const { user_id, cart_items } = req.body;
-    const connection = await db.getConnection();
-    try {
-        await connection.beginTransaction();
-        
-        let total_amount = 0;
-        cart_items.forEach(item => total_amount += (item.price * item.quantity));
+app.get("/orders", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         o.order_id,
+         o.user_id,
+         o.order_date,
+         o.status AS order_status,
+         o.total_amount,
+         oi.order_item_id,
+         oi.order_item_id AS item_id,
+         oi.product_id,
+         p.name AS product_name,
+         p.vendor_id,
+         v.store_name AS vendor_name,
+         oi.quantity,
+         oi.price,
+         oi.status AS item_status
+       FROM Orders o
+       JOIN OrderItem oi ON o.order_id = oi.order_id
+       JOIN Product p ON oi.product_id = p.product_id
+       JOIN Vendor v ON p.vendor_id = v.vendor_id
+       ORDER BY o.order_date DESC, oi.order_item_id DESC`
+    );
 
-        const [orderResult] = await connection.query(
-            "INSERT INTO \`Order\` (user_id, total_amount) VALUES (?, ?)", 
-            [user_id, total_amount]
-        );
-        const orderId = orderResult.insertId;
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-        for (const item of cart_items) {
-            // Check stock
-            const [productRows] = await connection.query("SELECT stock FROM Product WHERE id = ? FOR UPDATE", [item.product_id]);
-            if(productRows[0].stock < item.quantity) {
-                throw new Error("Not enough stock for product " + item.product_id);
-            }
-            await connection.query("UPDATE Product SET stock = stock - ? WHERE id = ?", [item.quantity, item.product_id]);
-            
-            // Insert order item
-            const [itemRes] = await connection.query(
-                "INSERT INTO OrderItem (order_id, product_id, quantity, price_at_time, vendor_id) VALUES (?, ?, ?, ?, ?)",
-                [orderId, item.product_id, item.quantity, item.price, item.vendor_id]
-            );
+app.put("/orders/:id/status", async (req, res) => {
+  const { status, type } = req.body;
 
-            // Calculate Commission
-            const [vendorRows] = await connection.query("SELECT commission_rate FROM Vendor WHERE id = ?", [item.vendor_id]);
-            let rate = vendorRows[0]?.commission_rate || 12;
-            let commissionAmount = (item.price * item.quantity * rate) / 100;
-            
-            await connection.query(
-                "INSERT INTO CommissionRecord (order_item_id, vendor_id, amount) VALUES (?, ?, ?)",
-                [itemRes.insertId, item.vendor_id, commissionAmount]
-            );
-        }
+  if (!status) {
+    return res.status(400).json({ error: "status is required" });
+  }
 
-        await connection.commit();
-        res.json({success: true, orderId});
-    } catch(e) {
-        await connection.rollback();
-        res.status(500).json({error: e.message});
-    } finally {
-        connection.release();
+  try {
+    if (type === "item") {
+      const [result] = await db.query(
+        "UPDATE OrderItem SET status = ? WHERE order_item_id = ?",
+        [status, req.params.id]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Order item not found" });
+      }
+
+      return res.json({ success: true });
     }
-});
 
-app.put('/orders/:id/status', async (req, res) => {
-    const { type, status } = req.body;
-    try {
-        if (type === 'item') {
-            await db.query("UPDATE OrderItem SET status=? WHERE id=?", [status, req.params.id]);
-        } else {
-            await db.query("UPDATE \`Order\` SET status=? WHERE id=?", [status, req.params.id]);
-        }
-        res.json({success:true});
-    } catch(e) {
-         res.status(500).json({error:e.message});
+    const [result] = await db.query(
+      "UPDATE Orders SET status = ? WHERE order_id = ?",
+      [status, req.params.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Order not found" });
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ==== VENDORS ====
-app.get('/vendors', async (req, res) => {
-    try {
-       const [rows] = await db.query("SELECT * FROM Vendor");
-       res.json(rows);
-    } catch(e) { res.status(500).json({error:e.message}); }
+app.get("/vendors", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         vendor_id,
+         user_id,
+         store_name,
+         store_name AS company_name,
+         vendor_type,
+         approval_status
+       FROM Vendor
+       ORDER BY vendor_id ASC`
+    );
+
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        status: row.approval_status ? "Approved" : "Pending"
+      }))
+    );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.put('/vendors/:id/approve', async (req, res) => {
-    const { status } = req.body; 
-    try {
-        await db.query("UPDATE Vendor SET status=? WHERE id=?", [status, req.params.id]);
-        res.json({success: true});
-    } catch(e) { res.status(500).json({error:e.message}); }
+app.put("/vendors/:id/approve", async (req, res) => {
+  const { approval_status, status } = req.body;
+
+  let finalStatus;
+  if (approval_status !== undefined) {
+    finalStatus = approval_status ? 1 : 0;
+  } else if (status !== undefined) {
+    finalStatus = String(status).toLowerCase() === "approved" ? 1 : 0;
+  } else {
+    return res.status(400).json({ error: "approval_status or status is required" });
+  }
+
+  try {
+    const [result] = await db.query(
+      "UPDATE Vendor SET approval_status = ? WHERE vendor_id = ?",
+      [finalStatus, req.params.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.put('/admin/settings/commission', async (req, res) => {
-    const { rate } = req.body;
-    try {
-        await db.query("UPDATE Vendor SET commission_rate=?", [rate]);
-        res.json({success: true});
-    } catch(e) { res.status(500).json({error:e.message}); }
+app.get("/admin/transactions", async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         cr.commission_id,
+         cr.order_id,
+         cr.vendor_id,
+         v.store_name AS vendor_name,
+         v.store_name AS vendor,
+         o.total_amount AS amount,
+         cr.commission_amount AS commission,
+         (o.total_amount - cr.commission_amount) AS payout,
+         cr.commission_rate,
+         o.status AS order_status,
+         o.order_date
+       FROM CommissionRecord cr
+       JOIN Orders o ON cr.order_id = o.order_id
+       JOIN Vendor v ON cr.vendor_id = v.vendor_id
+       ORDER BY cr.commission_id DESC`
+    );
+
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ==== ADMIN/STATISTICS ====
-app.get('/admin/transactions', async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT 
-                cr.id, 
-                oi.order_id, 
-                v.company_name as vendor, 
-                (oi.price_at_time * oi.quantity) as amount, 
-                cr.amount as commission,
-                ((oi.price_at_time * oi.quantity) - cr.amount) as payout,
-                o.status
-            FROM CommissionRecord cr
-            JOIN OrderItem oi ON cr.order_item_id = oi.id
-            JOIN Vendor v ON cr.vendor_id = v.id
-            JOIN \`Order\` o ON oi.order_id = o.id
-            ORDER BY o.created_at DESC
-        `);
-        res.json(rows);
-    } catch(e) { res.status(500).json({error:e.message}); }
+app.put("/admin/commission", async (req, res) => {
+  const { rate } = req.body;
+
+  if (rate === undefined) {
+    return res.status(400).json({ error: "rate is required" });
+  }
+
+  try {
+    const [result] = await db.query(
+      "UPDATE CommissionRecord SET commission_rate = ?",
+      [rate]
+    );
+
+    res.json({
+      success: true,
+      updated_rows: result.affectedRows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/vendor/:id/dashboard', async (req, res) => {
-    try {
-       const [vendorInfo] = await db.query("SELECT * FROM Vendor WHERE id=?", [req.params.id]);
-       if(vendorInfo[0].status !== 'Approved') {
-           return res.json({ approved: false });
-       }
+app.put("/admin/settings/commission", async (req, res) => {
+  const { rate } = req.body;
 
-       const [salesRows] = await db.query(`
-           SELECT (oi.price_at_time * oi.quantity) as total_revenue, c.amount as commission
-           FROM OrderItem oi
-           LEFT JOIN CommissionRecord c ON oi.id = c.order_item_id
-           WHERE oi.vendor_id = ?
-       `, [req.params.id]);
+  if (rate === undefined) {
+    return res.status(400).json({ error: "rate is required" });
+  }
 
-       let revenue = 0, commission = 0;
-       salesRows.forEach(r => {
-           revenue += Number(r.total_revenue) || 0;
-           commission += Number(r.commission) || 0;
-       });
+  try {
+    const [result] = await db.query(
+      "UPDATE CommissionRecord SET commission_rate = ?",
+      [rate]
+    );
 
-       const [dailySales] = await db.query(`
-           SELECT DATE(o.created_at) as date, SUM(oi.price_at_time * oi.quantity) as daily_total
-           FROM OrderItem oi
-           JOIN \`Order\` o ON oi.order_id = o.id
-           WHERE oi.vendor_id = ? AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-           GROUP BY DATE(o.created_at)
-           ORDER BY date ASC
-       `, [req.params.id]);
-
-       res.json({
-           approved: true,
-           revenue,
-           orders: salesRows.length,
-           commission,
-           netPayout: revenue - commission,
-           chartData: dailySales
-       });
-
-    } catch(e) {res.status(500).json({error:e.message});}
+    res.json({
+      success: true,
+      updated_rows: result.affectedRows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/categories', async (req, res) => {
-    try {
-        const [rows] = await db.query("SELECT * FROM Category");
-        res.json(rows);
-    } catch(e) {res.status(500).json({error:e.message});}
+app.get("/categories", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM Category ORDER BY category_name");
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-const PORT = 3000;
+app.get("/vendor/:id/dashboard", async (req, res) => {
+  const vendorId = req.params.id;
+
+  try {
+    const [vendorRows] = await db.query(
+      `SELECT vendor_id, store_name, approval_status
+       FROM Vendor
+       WHERE vendor_id = ?`,
+      [vendorId]
+    );
+
+    if (vendorRows.length === 0) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    if (!vendorRows[0].approval_status) {
+      return res.json({ approved: false });
+    }
+
+    const [summaryRows] = await db.query(
+      `SELECT
+         COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue,
+         COUNT(oi.order_item_id) AS orders,
+         COALESCE(SUM(cr.commission_amount), 0) AS commission
+       FROM OrderItem oi
+       JOIN Product p ON p.product_id = oi.product_id
+       LEFT JOIN CommissionRecord cr
+         ON cr.order_id = oi.order_id AND cr.vendor_id = p.vendor_id
+       WHERE p.vendor_id = ?`,
+      [vendorId]
+    );
+
+    const [chartRows] = await db.query(
+      `SELECT
+         DATE(o.order_date) AS date,
+         SUM(oi.quantity * oi.price) AS daily_total
+       FROM Orders o
+       JOIN OrderItem oi ON oi.order_id = o.order_id
+       JOIN Product p ON p.product_id = oi.product_id
+       WHERE p.vendor_id = ?
+       GROUP BY DATE(o.order_date)
+       ORDER BY DATE(o.order_date) ASC`,
+      [vendorId]
+    );
+
+    const summary = summaryRows[0];
+
+    res.json({
+      approved: true,
+      revenue: Number(summary.revenue || 0),
+      orders: Number(summary.orders || 0),
+      commission: Number(summary.commission || 0),
+      netPayout: Number(summary.revenue || 0) - Number(summary.commission || 0),
+      chartData: chartRows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log('Server running on http://localhost:' + PORT);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

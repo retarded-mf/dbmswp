@@ -1,41 +1,57 @@
 const db = require("../db");
 
-/*
-  Example queries:
-  - List vendors:
-    SELECT * FROM Vendor;
-
-  - Approve vendor:
-    UPDATE Vendor SET status='Approved' WHERE id=1;
-*/
-
 async function listVendors(req, res) {
   try {
     const [rows] = await db.query(
-      "SELECT id, user_id, company_name, status, commission_rate, created_at FROM Vendor ORDER BY created_at DESC"
+      `SELECT
+         vendor_id,
+         user_id,
+         store_name,
+         store_name AS company_name,
+         vendor_type,
+         approval_status,
+         approval_status AS status
+       FROM Vendor
+       ORDER BY vendor_id ASC`
     );
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        status: row.approval_status ? "Approved" : "Pending"
+      }))
+    );
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
 async function approveVendor(req, res) {
-  const { id } = req.params;
-  const { status } = req.body; // 'Approved' or 'Rejected' or 'Pending'
+  const vendorId = req.params.id;
+  const { approval_status, status } = req.body;
 
-  if (!status) {
-    return res.status(400).json({ error: "status is required (Approved/Rejected/Pending)" });
+  let finalStatus;
+  if (approval_status !== undefined) {
+    finalStatus = approval_status ? 1 : 0;
+  } else if (status !== undefined) {
+    finalStatus = String(status).toLowerCase() === "approved" ? 1 : 0;
+  } else {
+    return res.status(400).json({ error: "approval_status or status is required" });
   }
 
   try {
-    const [result] = await db.query("UPDATE Vendor SET status = ? WHERE id = ?", [status, id]);
+    const [result] = await db.query(
+      "UPDATE Vendor SET approval_status = ? WHERE vendor_id = ?",
+      [finalStatus, vendorId]
+    );
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Vendor not found" });
     }
+
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -43,4 +59,3 @@ module.exports = {
   listVendors,
   approveVendor
 };
-

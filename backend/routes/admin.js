@@ -1,14 +1,10 @@
 const express = require("express");
-const router = express.Router();
-
 const adminController = require("../controllers/adminController");
 
-// ADMIN ROUTES
-// GET /admin/transactions → get all transactions
-router.get("/transactions", adminController.getAllTransactions);
+const router = express.Router();
 
-// PUT /admin/commission → update commission rate
+router.get("/transactions", adminController.getAllTransactions);
 router.put("/commission", adminController.updateCommissionRate);
+router.put("/settings/commission", adminController.updateCommissionRate);
 
 module.exports = router;
-

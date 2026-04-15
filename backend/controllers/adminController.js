@@ -1,43 +1,29 @@
 const db = require("../db");
 
-/*
-  Example queries:
-  - Transactions (commission records):
-    SELECT cr.*, oi.order_id, v.company_name
-    FROM CommissionRecord cr
-    JOIN OrderItem oi ON cr.order_item_id = oi.id
-    JOIN Vendor v ON cr.vendor_id = v.id;
-
-  - Update commission rate for all vendors (simple demo):
-    UPDATE Vendor SET commission_rate = 15;
-*/
-
 async function getAllTransactions(req, res) {
   try {
     const [rows] = await db.query(
-      `
-      SELECT 
-        cr.id,
-        cr.created_at,
-        cr.amount AS commission,
-        oi.id AS order_item_id,
-        oi.order_id,
-        oi.product_id,
-        oi.vendor_id,
-        (oi.price_at_time * oi.quantity) AS item_total,
-        v.company_name AS vendor_name,
-        o.status AS order_status
-      FROM CommissionRecord cr
-      JOIN OrderItem oi ON cr.order_item_id = oi.id
-      JOIN Vendor v ON cr.vendor_id = v.id
-      JOIN \`Order\` o ON oi.order_id = o.id
-      ORDER BY cr.created_at DESC
-      `
+      `SELECT
+         cr.commission_id,
+         cr.order_id,
+         cr.vendor_id,
+         v.store_name AS vendor_name,
+         v.store_name AS vendor,
+         o.total_amount AS amount,
+         cr.commission_amount AS commission,
+         (o.total_amount - cr.commission_amount) AS payout,
+         cr.commission_rate,
+         o.status AS order_status,
+         o.order_date
+       FROM CommissionRecord cr
+       JOIN Orders o ON cr.order_id = o.order_id
+       JOIN Vendor v ON cr.vendor_id = v.vendor_id
+       ORDER BY cr.commission_id DESC`
     );
 
     res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -49,10 +35,17 @@ async function updateCommissionRate(req, res) {
   }
 
   try {
-    const [result] = await db.query("UPDATE Vendor SET commission_rate = ?", [rate]);
-    res.json({ success: true, updatedRows: result.affectedRows });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const [result] = await db.query(
+      "UPDATE CommissionRecord SET commission_rate = ?",
+      [rate]
+    );
+
+    res.json({
+      success: true,
+      updated_rows: result.affectedRows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -60,4 +53,3 @@ module.exports = {
   getAllTransactions,
   updateCommissionRate
 };
-
