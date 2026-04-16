@@ -263,7 +263,9 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
 
             <div class="card mb-2">
                 <h3>Sales Analytics (Last 7 Days)</h3>
-                <canvas id="vendorSalesChart" height="5"></canvas>
+                <div style="position: relative; height: 350px; width: 100%;">
+                    <canvas id="vendorSalesChart"></canvas>
+                </div>
             </div>
 
             <div class="flex-space mb-2" style="margin-top:40px;">
@@ -370,87 +372,6 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             </table>
         </div>
     </div>
-
-
-    <!-- DBMS VIVA REQUIREMENT SECTION -->
-    <div class="schema-section">
-        <button class="schema-toggle" id="schema-toggle-btn">
-            DBMS Schema Reference <span>+</span>
-        </button>
-        <div class="schema-content" id="schema-content">
-            <p>Database table schematics implemented in MySQL. Using appropriate datatypes, PKs, and FK constraints with cascading actions.</p>
-            
-            <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:20px;">
-                
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>User</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px; margin-bottom:0;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td>name</td><td>VARCHAR(255)</td></tr>
-                        <tr><td>email</td><td>VARCHAR(255) UNIQUE</td></tr>
-                        <tr><td>role</td><td>ENUM('Customer','Vendor','Admin')</td></tr>
-                    </table>
-                </div>
-
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>Vendor</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td><i>user_id (FK)</i></td><td>INT -> User(id)</td></tr>
-                        <tr><td>company_name</td><td>VARCHAR(255)</td></tr>
-                        <tr><td>status</td><td>ENUM('Pending','Approved')</td></tr>
-                        <tr><td>commission_rate</td><td>DECIMAL(5,2)</td></tr>
-                    </table>
-                </div>
-
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>Product</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td><i>vendor_id (FK)</i></td><td>INT -> Vendor(id)</td></tr>
-                        <tr><td><i>category_id (FK)</i></td><td>INT -> Category(id)</td></tr>
-                        <tr><td>name</td><td>VARCHAR(255)</td></tr>
-                        <tr><td>price</td><td>DECIMAL(10,2)</td></tr>
-                        <tr><td>stock</td><td>INT</td></tr>
-                    </table>
-                </div>
-                
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>Order</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td><i>user_id (FK)</i></td><td>INT -> User(id)</td></tr>
-                        <tr><td>total_amount</td><td>DECIMAL(10,2)</td></tr>
-                        <tr><td>status</td><td>ENUM(...)</td></tr>
-                    </table>
-                </div>
-
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>OrderItem</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td><i>order_id (FK)</i></td><td>INT -> Order(id)</td></tr>
-                        <tr><td><i>product_id (FK)</i></td><td>INT -> Product(id)</td></tr>
-                        <tr><td><i>vendor_id (FK)</i></td><td>INT -> Vendor(id)</td></tr>
-                        <tr><td>quantity</td><td>INT</td></tr>
-                        <tr><td>price_at_time</td><td>DECIMAL(10,2)</td></tr>
-                    </table>
-                </div>
-
-                <div class="schema-table" style="flex:1; min-width:300px;">
-                    <h4>CommissionRecord</h4>
-                    <table style="margin:0; font-family:monospace; font-size:13px;">
-                        <tr><td><b>id (PK)</b></td><td>INT AUTO_INCREMENT</td></tr>
-                        <tr><td><i>order_item_id (FK)</i></td><td>INT -> OrderItem(id)</td></tr>
-                        <tr><td><i>vendor_id (FK)</i></td><td>INT -> Vendor(id)</td></tr>
-                        <tr><td>amount</td><td>DECIMAL(10,2)</td></tr>
-                    </table>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
 
     <!-- APPLICATION LOGIC IN VANILLA JS -->
     <script>
