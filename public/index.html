@@ -222,7 +222,10 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 </div>
                 
                 <div class="card">
-                    <h3>Recent History</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0;">Recent History</h3>
+                        <button class="btn" style="padding:4px 8px; font-size:12px; background:var(--danger);" onclick="clearHistory()">Clear</button>
+                    </div>
                     <div id="order-history-list" style="margin-top:15px; font-size:14px; color:#555;">
                         <p>No recent orders found.</p>
                     </div>
@@ -388,6 +391,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
         let categories = [];
         let cart = [];
         let orderHistory = [];
+        const hiddenOrders = new Set();
         const vendorId = 1; // Maker Hub
         const userId = 1;   // Aarav Shah (customer) — matches seed User
 
@@ -590,6 +594,20 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             }
         }
 
+        async function clearHistory() {
+            if(confirm("Are you sure you want to clear your entire order history?")) {
+                const res = await req('/orders');
+                if (res) {
+                    const myOrders = res.filter(o => Number(o.user_id) === userId);
+                    myOrders.forEach(o => hiddenOrders.add(o.order_id));
+                }
+                const historyList = document.getElementById('order-history-list');
+                if (historyList) {
+                    historyList.innerHTML = '<p>No recent orders found.</p>';
+                }
+            }
+        }
+
         async function fetchOrderHistory() {
             // Get orders and demonstrate progress bar UI dynamically
             const res = await req('/orders');
@@ -598,7 +616,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 historyList.innerHTML = '';
                 
                 // Group by basic order
-                const myOrders = res.filter(o => Number(o.user_id) === userId);
+                const myOrders = res.filter(o => Number(o.user_id) === userId && !hiddenOrders.has(o.order_id));
 
                 if (myOrders.length === 0) {
                     historyList.innerHTML = '<p>No recent orders found.</p>';
