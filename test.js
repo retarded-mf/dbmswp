@@ -1,406 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refined Marketplace</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-/* Reset and Variables */
-:root {
-  --bg-color: #f5f0e8;
-  --text-dark: #2c3e50;
-  --text-light: #7f8c8d;
-  --primary: #cba37c; 
-  --primary-hover: #b08d6a;
-  --accent: #2c3e50;
-  --card-bg: #ffffff;
-  --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  --border-radius: 12px;
-  --font-heading: 'Playfair Display', serif;
-  --font-body: 'DM Sans', sans-serif;
-  --danger: #cf3721;
-  --success: #2ecc71;
-}
 
-body {
-  margin: 0; padding: 0;
-  background-color: var(--bg-color);
-  color: var(--text-dark);
-  font-family: var(--font-body);
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  margin-top: 0;
-}
-
-/* Role Switcher */
-.role-switcher {
-  background: var(--accent);
-  color: white;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-.role-switcher span { font-weight: 500; font-size: 14px; }
-.role-switcher button {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.4);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: all 0.2s;
-}
-.role-switcher button.active, .role-switcher button:hover {
-  background: white;
-  color: var(--accent);
-}
-
-/* Layout */
-.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-.view { display: none; }
-.view.active { display: block; animation: fadeIn 0.4s ease; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Cards & Buttons */
-.card {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  padding: 20px;
-}
-.btn {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-weight: 500;
-  transition: background 0.2s;
-}
-.btn:hover { background: var(--primary-hover); }
-
-/* Products Grid */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-.product-card {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  padding: 20px;
-  text-align: center;
-  position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}
-.product-title { font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 5px; }
-.product-vendor { color: var(--text-light); font-size: 0.9em; margin-bottom: 10px; }
-.product-price { font-size: 1.25rem; font-weight: bold; color: var(--accent); margin-bottom: 15px; }
-
-.stock-badge {
-  position: absolute; top: 15px; right: 15px;
-  background: #f1f2f6; padding: 4px 8px;
-  border-radius: 12px; font-size: 0.8rem; font-weight: bold;
-}
-.stock-badge.low { background: #ffeaa7; color: #d63031; }
-
-.filters { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-.filter-btn {
-  background: white; border: 1px solid #e1e1e1;
-  padding: 8px 16px; border-radius: 20px;
-  cursor: pointer; white-space: nowrap;
-}
-.filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-.search-bar {
-  width: 100%; padding: 12px 20px; border: 1px solid #e1e1e1;
-  border-radius: 25px; font-family: var(--font-body); font-size: 16px;
-  box-sizing: border-box; margin-bottom: 20px;
-}
-
-/* Sidebar */
-.customer-layout { display: flex; gap: 30px; }
-.main-content { flex: 1; }
-.sidebar { width: 320px; flex-shrink: 0; }
-
-.cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-.cart-total { font-size: 1.2rem; font-weight: bold; margin: 20px 0; display: flex; justify-content: space-between; }
-
-/* Tables */
-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-table th, table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e1e1e1; }
-table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
-.row-low-stock { background-color: #fff5f5; color: var(--danger); }
-
-/* Dashboard Cards */
-.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.dash-card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-.dash-card h3 { color: var(--text-light); font-size: 0.9rem; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 1px; }
-.dash-card .value { font-size: 2rem; font-weight: bold; font-family: var(--font-heading); }
-
-/* DBMS Section */
-.schema-section { max-width: 1200px; margin: 50px auto; padding: 20px; background: white; border-top: 4px solid var(--accent); }
-.schema-toggle { background: none; border: none; font-family: var(--font-heading); font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%; color:var(--text-dark);}
-.schema-content { display: none; margin-top: 20px; }
-.schema-table { margin-bottom: 30px; border: 1px solid #eee; border-radius: 8px; overflow: hidden; background:#fff; }
-.schema-table h4 { background: #f9f9f9; margin: 0; padding: 10px 15px; border-bottom: 1px solid #eee; }
-
-/* Utils */
-.mb-2 { margin-bottom: 20px; }
-.flex-space { display: flex; justify-content: space-between; align-items: center; }
-
-/* Simple progress */
-.status-bar { display: inline-flex; gap: 5px; font-size:0.75rem; color:#aaa;}
-.status-bar span.active { color: var(--success); font-weight:bold; }
-
-@media (max-width: 768px) {
-  .customer-layout { flex-direction: column; }
-  .sidebar { width: 100%; }
-}
-    </style>
-</head>
-<body>
-
-    <!-- Role Selection Header -->
-    <div class="role-switcher" style="display: flex; flex-wrap: wrap;">
-        <span>View as:</span>
-        <button class="role-btn active" data-role="customer">Customer</button>
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <button class="role-btn" data-role="vendor">Vendor Dashboard</button>
-            <select id="vendor-switch" style="display:none; background:var(--accent); color:white; border:1px solid rgba(255,255,255,0.4); border-radius: 6px; padding:4px; font-family:var(--font-body);" onchange="changeVendor(this.value)">
-            </select>
-        </div>
-        <button class="role-btn" data-role="admin">Admin</button>
-        <div style="flex-grow: 1;"></div>
-        <button class="btn role-btn" data-role="apply-vendor" style="padding: 6px 12px; font-size: 14px;">Apply as Vendor</button>
-    </div>
-
-    <!-- MAIN CUSTOMER VIEW -->
-    <div id="view-customer" class="view active container">
-        <div class="customer-layout">
-            <div class="main-content">
-                <h1 style="font-size:2.5rem; margin-bottom:10px;">The Marketplace</h1>
-                <p style="color:var(--text-light); margin-bottom:30px;">Discover curated premium products.</p>
-                
-                <input type="text" id="search-input" class="search-bar" placeholder="Search for products...">
-                
-                <div class="filters" id="category-filters">
-                    <!-- Populated by JS -->
-                </div>
-
-                <div class="product-grid" id="product-grid">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-            
-            <div class="sidebar">
-                <div class="card mb-2">
-                    <h3>Your Cart</h3>
-                    <div id="cart-items">
-                        <div style="color: #999; margin-top:10px;">Cart is empty.</div>
-                    </div>
-                    <div class="cart-total">
-                        <span>Subtotal:</span>
-                        <span id="cart-total-amt">₹0.00</span>
-                    </div>
-                    <button class="btn" style="width:100%" onclick="placeOrder()">Place Order</button>
-                </div>
-                
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="margin:0;">Recent History</h3>
-                        <button class="btn" style="padding:4px 8px; font-size:12px; background:var(--danger);" onclick="clearHistory()">Clear</button>
-                    </div>
-                    <div id="order-history-list" style="margin-top:15px; font-size:14px; color:#555;">
-                        <p>No recent orders found.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- VENDOR APPLICATION VIEW -->
-    <div id="view-apply-vendor" class="view container">
-        <h1>Vendor Application</h1>
-        <p style="color:var(--text-light); margin-bottom:30px;">Partner with us to sell your products on our platform.</p>
-        
-        <div class="card" style="max-width: 500px; margin: 0 auto;">
-            <form id="vendor-apply-form" onsubmit="handleVendorApply(event)">
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:bold;">Company / Store Name</label>
-                    <input type="text" id="apply-v-name" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:bold;">Vendor Type</label>
-                    <input type="text" id="apply-v-type" placeholder="e.g., Electronics Store, Parts Supplier" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;">
-                </div>
-                <button type="submit" class="btn" style="width:100%">Submit Application</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MAIN VENDOR VIEW -->
-    <div id="view-vendor" class="view container">
-        <h1 id="vendor-dashboard-title">Vendor Dashboard</h1>
-        
-        <div id="vendor-pending" style="display:none;" class="card">
-            <h3 style="color: var(--danger)">Account Notice</h3>
-            <p>Your vendor account is pending admin approval. Features are locked.</p>
-        </div>
-
-        <div id="vendor-content">
-            <div class="dash-grid">
-                <div class="dash-card">
-                    <h3>Gross Revenue</h3>
-                    <div class="value" id="v-rev">₹0.00</div>
-                </div>
-                <div class="dash-card">
-                    <h3>Units Sold</h3>
-                    <div class="value" id="v-orders">0</div>
-                </div>
-                <div class="dash-card">
-                    <h3>Platform Commission</h3>
-                    <div class="value" id="v-comm">₹0.00</div>
-                </div>
-                <div class="dash-card" style="background:var(--primary); color:white;">
-                    <h3 style="color:rgba(255,255,255,0.8)">Net Payout</h3>
-                    <div class="value" id="v-net">₹0.00</div>
-                </div>
-            </div>
-
-            <div class="card mb-2">
-                <h3>Sales Analytics (Last 7 Days)</h3>
-                <div style="position: relative; height: 350px; width: 100%;">
-                    <canvas id="vendorSalesChart"></canvas>
-                </div>
-            </div>
-
-            <div class="flex-space mb-2" style="margin-top:40px;">
-                <h3>Product Management</h3>
-            </div>
-            
-            <div class="card mb-2" style="background: #fafaf5 border: 1px solid #efebe2;">
-                <!-- Add product form -->
-                <form id="add-product-form" onsubmit="handleAddProduct(event)" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <input type="text" id="add-p-name" placeholder="Item Name" required style="padding:10px; border-radius:6px; border:1px solid #ccc">
-                    <select id="add-p-cat" required style="padding:10px; border-radius:6px; border:1px solid #ccc">
-                        <!-- Populated by JS -->
-                    </select>
-                    <input type="number" id="add-p-price" placeholder="Price" step="0.01" required style="padding:10px; border-radius:6px; border:1px solid #ccc; width:100px">
-                    <input type="number" id="add-p-stock" placeholder="Stock" required style="padding:10px; border-radius:6px; border:1px solid #ccc; width:80px">
-                    <button type="submit" class="btn">Publish Product</button>
-                </form>
-            </div>
-
-            <div class="card mb-2" style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Category</th>
-                            <th>Pricing</th>
-                            <th>Stock Level</th>
-                            <th>Status Visibility</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vendor-products-tbody"></tbody>
-                </table>
-            </div>
-
-            <h3 style="margin-top:40px;">Customer Orders Pending</h3>
-            <div class="card" style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order Ref</th>
-                            <th>Product Ordered</th>
-                            <th>Qty</th>
-                            <th>Fulfillment Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vendor-orders-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- MAIN ADMIN VIEW -->
-    <div id="view-admin" class="view container">
-        <h1>Platform Root Administration</h1>
-
-        <div class="dash-grid">
-            <div class="dash-card">
-                <h3>Total Platform GMV</h3>
-                <div class="value" id="a-gross">₹0.00</div>
-            </div>
-            <div class="dash-card" style="background:var(--accent); color:white;">
-                <h3 style="color:rgba(255,255,255,0.8)">Net Platform Profit (Commission)</h3>
-                <div class="value" id="a-comm">₹0.00</div>
-            </div>
-            <div class="dash-card">
-                <h3>Vendor Payout Ledger</h3>
-                <div class="value" id="a-payout">₹0.00</div>
-            </div>
-        </div>
-
-        <p style="color:var(--text-light); margin-bottom:20px;">Commission and payouts appear here after a customer places an order (demo).</p>
-
-        <h3 style="margin-top:40px;">Partnership / Vendor Applications</h3>
-        <div class="card mb-2" style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Corporate Entity</th>
-                        <th>Approval State</th>
-                        <th>Rate Setting</th>
-                        <th>Decisions</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-vendors-tbody"></tbody>
-            </table>
-        </div>
-
-        <h3 style="margin-top:40px;">Deep Transaction Ledger</h3>
-        <div class="card" style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ref #</th>
-                        <th>Vendor Firm</th>
-                        <th>Total Paid</th>
-                        <th>Platform Cut</th>
-                        <th>Vendor Earned</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-trans-tbody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- APPLICATION LOGIC IN VANILLA JS -->
-    <script>
         const API_URL = 'http://localhost:3000';
 
         function formatRupees(n) {
@@ -539,6 +137,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 div.className = 'product-card';
                 div.innerHTML = `
                     <div class="stock-badge ${p.stock < 5 ? 'low' : ''}">${p.stock > 0 ? p.stock + ' in stock' : 'Out of Stock'}</div>
+                    <div class="product-emoji">${p.emoji || '📦'}</div>
                     <h3 class="product-title">${p.name}</h3>
                     <div class="product-vendor">sold by ${p.vendor_name}</div>
                     <div class="product-price">${formatRupees(p.price)}</div>
@@ -735,7 +334,7 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 if(p.stock < 5) tr.className = 'row-low-stock'; 
                 
                 tr.innerHTML = `
-                    <td>${p.name}</td>
+                    <td>${p.emoji || ''} ${p.name}</td>
                     <td>${p.category_name}</td>
                     <td>${formatRupees(p.price)}</td>
                     <td style="font-weight:bold">${p.stock}</td>
@@ -824,7 +423,8 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                 category_id: document.getElementById('add-p-cat').value,
                 name: document.getElementById('add-p-name').value,
                 price: document.getElementById('add-p-price').value,
-                stock: document.getElementById('add-p-stock').value
+                stock: document.getElementById('add-p-stock').value,
+                emoji: document.getElementById('add-p-emoji').value,
             };
             await req('/products', { method: 'POST', body: JSON.stringify(data)});
             alert("Record successfully persisted.");
@@ -852,13 +452,10 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
                                 </span>
                             </td>
                             <td>${v.commission_rate}%</td>
-                            <td style="display:flex; justify-content:space-between; align-items:center;">
-                                <div>
+                            <td>
                                 ${v.status === 'Pending' ? `
-                                <button class="btn" style="padding:4px 8px; font-size:12px;" onclick="approveVendor(${v.vendor_id}, 'Approved')">Approve</button> 
+                                <button class="btn" style="padding:4px 8px; font-size:12px;" onclick="approveVendor(${v.vendor_id}, 'Approved')">Approve ✔️</button> 
                                 ` : '<span style="color:#aaa; font-style:italic">Active Account</span>'}
-                                </div>
-                                <button class="btn" style="padding:4px 8px; font-size:12px; background:var(--danger);" onclick="removeVendor(${v.vendor_id})">Remove</button>
                             </td>
                         </tr>
                     `;
@@ -904,20 +501,6 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             await req(`/vendors/${id}/approve`, { method:'PUT', body: JSON.stringify({status}) });
             alert("Vendor Approval Matrix Updated in MySQL Database.");
             loadAdminDashboard();
-        }
-
-        async function removeVendor(id) {
-            if (confirm("Are you sure you want to completely remove this vendor and all associated products?")) {
-                const res = await req(`/vendors/${id}`, { method: 'DELETE' });
-                if (res && res.success) {
-                    alert("Vendor removed successfully.");
-                    loadAdminDashboard();
-                } else {
-                    alert("Could not remove vendor: " + (res?.error || "Unknown Error"));
-                }
-            }
-        }
-
         async function handleVendorApply(e) {
             e.preventDefault();
             const payload = {
@@ -935,6 +518,4 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             }
         }
 
-    </script>
-</body>
-</html>
+    
