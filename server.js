@@ -370,6 +370,23 @@ app.get("/vendors", async (req, res) => {
   }
 });
 
+app.post("/vendors", async (req, res) => {
+  const { user_id, store_name, vendor_type } = req.body;
+  if (!user_id || !store_name || !vendor_type) {
+    return res.status(400).json({ error: "user_id, store_name, vendor_type are required" });
+  }
+  try {
+    const [result] = await db.query(
+      `INSERT INTO Vendor (user_id, store_name, vendor_type, approval_status, commission_rate)
+       VALUES (?, ?, ?, FALSE, 0)`,
+      [user_id, store_name, vendor_type]
+    );
+    res.status(201).json({ success: true, vendor_id: result.insertId });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.put("/vendors/:id/approve", async (req, res) => {
   const { approval_status, status } = req.body;
 

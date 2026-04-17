@@ -183,11 +183,17 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
 <body>
 
     <!-- Role Selection Header -->
-    <div class="role-switcher">
+    <div class="role-switcher" style="display: flex; flex-wrap: wrap;">
         <span>View as:</span>
         <button class="role-btn active" data-role="customer">Customer</button>
-        <button class="role-btn" data-role="vendor">Vendor (Maker Hub)</button>
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <button class="role-btn" data-role="vendor">Vendor Dashboard</button>
+            <select id="vendor-switch" style="display:none; background:var(--accent); color:white; border:1px solid rgba(255,255,255,0.4); border-radius: 6px; padding:4px; font-family:var(--font-body);" onchange="changeVendor(this.value)">
+            </select>
+        </div>
         <button class="role-btn" data-role="admin">Admin</button>
+        <div style="flex-grow: 1;"></div>
+        <button class="btn" style="padding: 6px 12px; font-size: 14px;" onclick="switchView('apply-vendor')">Apply as Vendor</button>
     </div>
 
     <!-- MAIN CUSTOMER VIEW -->
@@ -234,10 +240,29 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
         </div>
     </div>
 
+    <!-- VENDOR APPLICATION VIEW -->
+    <div id="view-apply-vendor" class="view container">
+        <h1>Vendor Application</h1>
+        <p style="color:var(--text-light); margin-bottom:30px;">Partner with us to sell your products on our platform.</p>
+        
+        <div class="card" style="max-width: 500px; margin: 0 auto;">
+            <form id="vendor-apply-form" onsubmit="handleVendorApply(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:bold;">Company / Store Name</label>
+                    <input type="text" id="apply-v-name" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:bold;">Vendor Type</label>
+                    <input type="text" id="apply-v-type" placeholder="e.g., Electronics Store, Parts Supplier" required style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;">
+                </div>
+                <button type="submit" class="btn" style="width:100%">Submit Application</button>
+            </form>
+        </div>
+    </div>
 
     <!-- MAIN VENDOR VIEW -->
     <div id="view-vendor" class="view container">
-        <h1>Maker Hub Vendor Dashboard</h1>
+        <h1 id="vendor-dashboard-title">Vendor Dashboard</h1>
         
         <div id="vendor-pending" style="display:none;" class="card">
             <h3 style="color: var(--danger)">Account Notice</h3>
@@ -392,7 +417,8 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
         let cart = [];
         let orderHistory = [];
         const hiddenOrders = new Set();
-        const vendorId = 1; // Maker Hub
+        let vendorId = 1; // Default to Maker Hub
+        let vendorsList = [];
         const userId = 1;   // Aarav Shah (customer) — matches seed User
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -429,6 +455,14 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
         function switchView(role) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(`view-${role}`).classList.add('active');
+
+            const vendorSwitch = document.getElementById('vendor-switch');
+            if (role === 'vendor') {
+                vendorSwitch.style.display = 'block';
+                loadVendorSwitcher();
+            } else {
+                vendorSwitch.style.display = 'none';
+            }
 
             if(role === 'customer') {
                 renderCustomerProducts();
@@ -649,12 +683,36 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
            ============================ */
         let vendorChartInstance = null;
         
+        async function loadVendorSwitcher() {
+            const vRes = await req('/vendors');
+            if(vRes) {
+                vendorsList = vRes;
+                const selectElement = document.getElementById('vendor-switch');
+                selectElement.innerHTML = '';
+                
+                vRes.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.vendor_id;
+                    opt.textContent = v.company_name;
+                    if (Number(v.vendor_id) === Number(vendorId)) opt.selected = true;
+                    selectElement.appendChild(opt);
+                });
+            }
+        }
+
+        async function changeVendor(vid) {
+            vendorId = Number(vid);
+            loadVendorDashboard();
+        }
+        
         async function loadVendorDashboard() {
             // Reload core resources
             await loadProducts();
             
-            const res = await req(`/vendor/${vendorId}/dashboard`);
-            if(res && !res.approved) {
+            const vRes = await req(`/vendor/${vendorId}/dashboard`);
+            const res = vRes || {}; // graceful fallback
+
+            if(!res.approved) {
                 document.getElementById('vendor-content').style.display = 'none';
                 document.getElementById('vendor-pending').style.display = 'block';
                 return;
@@ -847,6 +905,21 @@ table th { font-weight: 500; color: var(--text-light); background: #f9f9f9; }
             await req(`/vendors/${id}/approve`, { method:'PUT', body: JSON.stringify({status}) });
             alert("Vendor Approval Matrix Updated in MySQL Database.");
             loadAdminDashboard();
+        async function handleVendorApply(e) {
+            e.preventDefault();
+            const payload = {
+                user_id: userId,
+                store_name: document.getElementById('apply-v-name').value,
+                vendor_type: document.getElementById('apply-v-type').value
+            };
+            const res = await req('/vendors', { method: 'POST', body: JSON.stringify(payload) });
+            if (res && res.success) {
+                alert("Vendor Application successfully submitted! Pending Admin approval.");
+                document.getElementById('vendor-apply-form').reset();
+                switchView('customer');
+            } else {
+                alert("Failed to submit application: " + (res?.error || "Unknown"));
+            }
         }
 
     </script>
