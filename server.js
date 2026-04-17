@@ -415,6 +415,31 @@ app.put("/vendors/:id/approve", async (req, res) => {
   }
 });
 
+app.delete("/vendors/:id", async (req, res) => {
+  const vendorId = req.params.id;
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query("DELETE FROM CommissionRecord WHERE vendor_id = ?", [vendorId]);
+    await connection.query("DELETE FROM Payout WHERE vendor_id = ?", [vendorId]);
+    await connection.query("DELETE FROM KitItem WHERE kit_id IN (SELECT kit_id FROM Kit WHERE vendor_id = ?)", [vendorId]);
+    await connection.query("DELETE FROM Kit WHERE vendor_id = ?", [vendorId]);
+    await connection.query("DELETE FROM OrderItem WHERE product_id IN (SELECT product_id FROM Product WHERE vendor_id = ?)", [vendorId]);
+    await connection.query("DELETE FROM Product WHERE vendor_id = ?", [vendorId]);
+    const [result] = await connection.query("DELETE FROM Vendor WHERE vendor_id = ?", [vendorId]);
+    await connection.commit();
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 app.get("/admin/transactions", async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -488,7 +513,7 @@ app.put("/admin/settings/commission", async (req, res) => {
 
 app.get("/categories", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM Category ORDER BY category_name");
+    const [rows] = await db.query("SELECT category_id AS id, category_name AS name FROM Category ORDER BY category_name");
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
