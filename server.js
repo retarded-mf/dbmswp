@@ -520,6 +520,24 @@ app.get("/categories", async (req, res) => {
   }
 });
 
+app.get("/project-types", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT project_type_id AS id, type_name AS name FROM ProjectType ORDER BY type_name");
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/difficulty-levels", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT difficulty_id AS id, level AS name FROM DifficultyLevel ORDER BY level");
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/vendor/:id/dashboard", async (req, res) => {
   const vendorId = req.params.id;
 

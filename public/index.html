@@ -529,6 +529,12 @@
                         style="padding:10px; border-radius:6px; border:1px solid #ccc; width:100px">
                     <input type="number" id="add-p-stock" placeholder="Stock" required
                         style="padding:10px; border-radius:6px; border:1px solid #ccc; width:80px">
+                    <select id="add-p-type" style="padding:10px; border-radius:6px; border:1px solid #ccc">
+                        <option value="">Project Type</option>
+                    </select>
+                    <select id="add-p-diff" style="padding:10px; border-radius:6px; border:1px solid #ccc">
+                        <option value="">Difficulty</option>
+                    </select>
                     <button type="submit" class="btn">Publish Product</button>
                 </form>
             </div>
@@ -634,6 +640,8 @@
         // MOCK SESSION STATE FOR DEMO
         let products = [];
         let categories = [];
+        let projectTypes = [];
+        let difficultyLevels = [];
         let cart = [];
         let orderHistory = [];
         const hiddenOrders = new Set();
@@ -667,8 +675,12 @@
         });
 
         async function initApp() {
-            await loadCategories();
-            await loadProducts();
+            await Promise.all([
+                loadCategories(),
+                loadProjectTypes(),
+                loadDifficultyLevels(),
+                loadProducts()
+            ]);
             switchView('customer');
         }
 
@@ -741,6 +753,30 @@
             }
         }
 
+        async function loadProjectTypes() {
+            const res = await req('/project-types');
+            if (res) {
+                projectTypes = res;
+                const typeSelect = document.getElementById('add-p-type');
+                if (typeSelect) {
+                    typeSelect.innerHTML = '<option value="">Select Project Type (Optional)</option>' +
+                        projectTypes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                }
+            }
+        }
+
+        async function loadDifficultyLevels() {
+            const res = await req('/difficulty-levels');
+            if (res) {
+                difficultyLevels = res;
+                const diffSelect = document.getElementById('add-p-diff');
+                if (diffSelect) {
+                    diffSelect.innerHTML = '<option value="">Select Difficulty (Optional)</option>' +
+                        difficultyLevels.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                }
+            }
+        }
+
 
         /* ============================
            CUSTOMER EXPERIENCE LOGIC 
@@ -767,6 +803,11 @@
                 div.innerHTML = `
                     <div class="stock-badge ${p.stock < 5 ? 'low' : ''}">${p.stock > 0 ? p.stock + ' in stock' : 'Out of Stock'}</div>
                     <h3 class="product-title">${p.name}</h3>
+                    <div style="font-size: 0.8rem; color: var(--primary); margin-bottom: 5px;">
+                        ${p.type_name ? `<span>${p.type_name}</span>` : ''} 
+                        ${p.type_name && p.level ? ' • ' : ''}
+                        ${p.level ? `<span>${p.level}</span>` : ''}
+                    </div>
                     <div class="product-vendor">sold by ${p.vendor_name}</div>
                     <div class="product-price">${formatRupees(p.price)}</div>
                     <button class="btn" style="width:100%; margin-top: auto;" onclick="addToCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>Add to Cart</button>
@@ -1049,6 +1090,8 @@
             const data = {
                 vendor_id: vendorId,
                 category_id: document.getElementById('add-p-cat').value,
+                project_type_id: document.getElementById('add-p-type').value || null,
+                difficulty_id: document.getElementById('add-p-diff').value || null,
                 name: document.getElementById('add-p-name').value,
                 price: document.getElementById('add-p-price').value,
                 stock: document.getElementById('add-p-stock').value

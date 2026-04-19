@@ -1,4 +1,5 @@
 DROP DATABASE IF EXISTS diy_marketplace;
+
 CREATE DATABASE diy_marketplace;
 USE diy_marketplace;
 
@@ -172,4 +173,7 @@ INSERT INTO KitItem (kit_id, product_id, quantity) VALUES
 (2, 8, 1),
 (2, 13, 1);
 
--- Orders, commissions, and payouts start empty; they are populated when customers place orders.
+INSERT INTO Product (name,price,stock,vendor_id,category_id,project_type_id,difficulty_id)
+VALUES('Resistor pack of 20',40,20,1,3,4,1)
+
+SELECT * FROM 

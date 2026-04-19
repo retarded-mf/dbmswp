@@ -41,17 +41,3 @@ The full database initialization script can be found in `sql/diy_marketplace.sql
 # In your MySQL terminal
 SOURCE sql/diy_marketplace.sql;
 ```
-
-## 🚀 Getting Started
-1. **Prerequisites**: Ensure you have [Node.js](https://nodejs.org/) and [MySQL](https://www.mysql.com/) installed.
-2. **Environment Setup**: Create a `.env` file in the root (see `.env.example` or use the provided defaults).
-3. **Database Setup**: Run the SQL script mentioned above.
-4. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-5. **Run the App**:
-   ```bash
-   npm start
-   ```
-   The application will be available at `http://localhost:3000`.
