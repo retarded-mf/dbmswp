@@ -23,6 +23,48 @@ The **DIY Multi-Vendor Marketplace** was built to demonstrate core Database Mana
 - **Environment**: 
   - `dotenv` for secure configuration management
 
+## 🚀 Getting Started
+
+Follow these steps to set up the project locally.
+
+### 1. Prerequisites
+- **Node.js**: [Download and install](https://nodejs.org/) (Version 16 or higher recommended).
+- **MySQL Server**: Ensure MySQL is installed and running on your machine.
+
+### 2. Installation
+Clone the repository and install the dependencies:
+```bash
+npm install
+```
+
+### 3. Database Setup
+Create a database named `diy_marketplace` and import the schema:
+```bash
+# In your MySQL terminal
+mysql -u root -p
+CREATE DATABASE diy_marketplace;
+USE diy_marketplace;
+SOURCE sql/diy_marketplace.sql;
+```
+
+### 4. Configuration
+Create a `.env` file in the root directory (you can copy `.env.example`) and update the database credentials:
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=diy_marketplace
+PORT=3000
+```
+
+### 5. Running the Application
+Start the development server:
+```bash
+npm start
+```
+The application will be available at `http://localhost:3000`.
+
+
 ## 🗄️ Database Architecture
 The heart of the project is a relational MySQL database designed with normalized tables to ensure data integrity.
 
@@ -34,10 +76,4 @@ The heart of the project is a relational MySQL database designed with normalized
 - **Orders / OrderItem**: Management of transactions and individual line items.
 - **CommissionRecord**: Financial ledger tracking the platform's 12% cut from each sale.
 - **Kit / KitItem**: Support for bundled "DIY Kits" containing multiple products.
-
-### Schema Script
-The full database initialization script can be found in `sql/diy_marketplace.sql`. To set up the database locally:
-```bash
-# In your MySQL terminal
-SOURCE sql/diy_marketplace.sql;
-```
+
